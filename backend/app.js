@@ -1,36 +1,44 @@
-const mongoose = require('mongoose')
-const express = require('express')
-const app = express()
+const express = require('express');
+const app = express();
+const port = process.env.PORT;
+const mongoose = require('mongoose');
 
-const bodyParser = require('body-parser')
-const cookieParser = require('cookie-parser')
-const cors = require('cors')
-require('dotenv').config()
+const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser');
+const cors = require('cors');
 
-// DB Connection
-mongoose.connect(process.env.DATABASE, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log('DB CONNECTED')
-}).catch((err) => {
-  console.log('UNABLE to connect to DB ' + err)
-})
+app.use(express.json());
+
+// Routes
+const authRoutes = require('./routes/auth.route');
 
 // Use parsing middleware
 app.use(bodyParser.json())
 app.use(cookieParser())
 app.use(cors())
 
-// Import the routes
-const userRoutes = require('./routes/user')
+// Declare API category endpoints
+app.use('/api/auth', authRoutes);
 
-// Using routes
-app.use('/api', userRoutes)
+mongoose.connect(
+  `${process.env.DB_PROTOCOL}://${process.env.DB_USER}:${process.env.DB_PASS}@${process.env.DB_HOST}/${process.env.DB_NAME}?${process.env.DB_PARAMS}`, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+  useFindAndModify: false,
+  useCreateIndex: true,
+}).then(() => {
+  app.listen(port, () => {
+    console.log('API Listening to http://localhost:' + port);
+  });
+}).catch((err) => {
+  console.log(err);
+});
 
-const port = process.env.PORT || 8000
-
-// Starting a server
-app.listen(port, () => {
-  console.log(`App is running at ${port}`)
+process.on('SIGINT', () => {
+  mongoose.connection.close(() => {
+    console.log('Mongoose disconnected on app termination');
+    process.exit(0);
+  });
 })
+
+
